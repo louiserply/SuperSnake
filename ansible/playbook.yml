@@ -16,10 +16,10 @@
       pip: name=flask
 
     - name: copy file app
-      copy: src=../vagrant/app.py dest=/home/vagrant/tp.py
+      copy: src=../HelloWorld/app.py dest=/home/vagrant/tp.py
 
     - name: copy file wsgi
-      copy: src=../vagrant/wsgi.py dest=/home/vagrant/wsgi.py
+      copy: src=../HelloWorld/wsgi.py dest=/home/vagrant/wsgi.py
 
     - name: launch virtualenv
       command: virtualenv myprojectenv
