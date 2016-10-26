@@ -1,0 +1,13 @@
+# Vagrant
+vagrant/.vagrant
+vagrant/._Vagrantfile
+
+# Ansible
+ansible/*.retry
+
+
+# DS_Store Files
+**/.DS_Store
+**/._.DS_Store
+
+

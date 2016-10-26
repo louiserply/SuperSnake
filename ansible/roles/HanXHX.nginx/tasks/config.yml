@@ -1,0 +1,34 @@
+---
+
+- name: TEMPLATE | Deploy nginx.conf
+  template: >
+    src=etc/nginx/nginx.conf.j2
+    dest="{{ nginx_etc_dir }}/nginx.conf"
+  notify: reload nginx
+
+- name: TEMPLATE | Deploy all helpers
+  template: >
+    src={{ item }}
+    dest={{ nginx_helper_dir }}/{{ item | basename | regex_replace('\.j2$','') }}
+  with_fileglob: '../templates/etc/nginx/helper/*.j2'
+  notify: reload nginx
+
+- name: TEMPLATE | Deploy custom http configuration
+  template: >
+    src=etc/nginx/conf.d/custom.conf.j2
+    dest="{{ nginx_etc_dir }}/conf.d/custom.conf"
+  notify: reload nginx
+
+- name: LINEINFILE | Fix path
+  lineinfile: >
+    regexp='{{ item.0.regexp }}'
+    line='{{ item.0.line }}'
+    dest='{{ item.1 }}'
+  with_nested:
+    -
+      - regexp: '^fastcgi_param  SCRIPT_FILENAME'
+        line: 'fastcgi_param  SCRIPT_FILENAME    $realpath_root$fastcgi_script_name;'
+      - regexp: '^fastcgi_param  DOCUMENT_ROOT'
+        line: 'fastcgi_param  DOCUMENT_ROOT      $realpath_root;'
+    - [ '/etc/nginx/fastcgi_params', '/etc/nginx/fastcgi.conf' ]
+  when: nginx_fastcgi_fix_realpath

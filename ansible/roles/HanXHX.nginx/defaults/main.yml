@@ -1,0 +1,120 @@
+---
+
+# Debian
+nginx_apt_package: nginx-full
+nginx_backports: false
+# FreeBSD
+nginx_pkgng_package: nginx
+
+#
+# Nginx shared variables
+#
+nginx_root: "/srv/www"
+nginx_log_dir: '/var/log/nginx'
+nginx_resolver_hosts: ['8.8.8.8', '8.8.4.4']
+nginx_resolver_valid: '300s'
+nginx_resolver_timeout: '5s'
+nginx_error_log_level: 'warn' # http://nginx.org/en/docs/ngx_core_module.html#error_log
+nginx_auto_config_httpv2: true
+nginx_default_vhost: null
+nginx_default_vhost_ssl: null
+nginx_fastcgi_fix_realpath: true
+
+#
+# Nginx directories
+#
+nginx_htpasswd_dir: '{{ nginx_etc_dir }}/htpasswd'
+nginx_ssl_dir: '{{ nginx_etc_dir }}/ssl'
+nginx_helper_dir: '{{ nginx_etc_dir}}/helper'
+
+#
+# Load upstream
+#
+
+# PHP
+nginx_php56: false
+nginx_php70: false
+nginx_php56_sockets:
+  - unix_socket: "/run/php5-fpm.sock"
+nginx_php70_sockets:
+  - unix_socket: "/run/php/php7.0-fpm.sock"
+nginx_upstreams: []
+
+#
+# Nginx configuration
+#
+nginx_user: 'www-data'
+nginx_worker_processes: '{{ ansible_processor_vcpus }}'
+
+#
+# Nginx events
+#
+nginx_events_worker_connections: '512'
+nginx_events_multi_accept: 'on'
+
+#
+# Nginx HTTP
+#
+nginx_http_types_hash_max_size: 2048
+nginx_http_default_type: 'application/octet-stream'
+nginx_http_access_log: 'off'
+nginx_http_error_log: 'off'
+nginx_http_client_body_buffer_size: '1M'
+nginx_http_client_header_buffer_size: '1M'
+nginx_http_client_max_body_size: '10M'
+nginx_http_large_client_header_buffers: '8 8k'
+nginx_http_client_body_timeout: '60'
+nginx_http_client_header_timeout: '60'
+nginx_http_keepalive_timeout: '30 30'
+nginx_http_send_timeout: '120'
+nginx_http_ignore_invalid_headers: 'on'
+nginx_http_keepalive_requests: '100'
+nginx_http_recursive_error_pages: 'on'
+nginx_http_sendfile: 'on'
+nginx_http_server_name_in_redirect: 'off'
+nginx_http_server_tokens: 'off'
+nginx_http_tcp_nodelay: 'on'
+nginx_http_tcp_nopush: 'on'
+nginx_http_reset_timedout_connection: 'on'
+nginx_http_gzip: 'on'
+nginx_http_gzip_buffers: '16 8k'
+nginx_http_gzip_comp_level: '9'
+nginx_http_gzip_http_version: '1.0'
+nginx_http_gzip_min_length: '0'
+nginx_http_gzip_types: 'text/plain text/css application/json application/x-javascript application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml'
+nginx_http_gzip_vary: 'on'
+nginx_http_gzip_disable: '"msie6"'
+
+#
+# Custom global configuration
+#
+nginx_custom_http: []
+
+#
+# Vhosts
+#
+nginx_vhosts: []
+
+#
+# htpasswd
+#
+nginx_htpasswd: []
+
+#
+# SSL pairs
+#
+nginx_ssl_pairs: []
+
+#
+# Diffie-Hellman
+#
+nginx_dh: null
+nginx_dh_path: '{{ nginx_ssl_dir }}/dhparam.pem'
+nginx_dh_length: 2048
+
+# Extra
+
+# Note:
+#   - On Debian, if you use Owncloud from Upstream repository, you must set this var to "/var/www/owncloud"
+#   - TODO: force this var in vars/FreeBSD.yml
+nginx_owncloud_root: '/usr/share/owncloud'

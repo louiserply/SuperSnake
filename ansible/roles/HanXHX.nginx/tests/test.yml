@@ -1,0 +1,400 @@
+---
+
+- hosts: all
+  pre_tasks:
+    - name: INCLUDE | Pre_tasks related to OS version
+      include: "includes/pre_{{ ansible_distribution }}.yml"
+    - name: FILE | Create an internal SSL dir
+      file: path={{ int_ansible_ssl_dir }} state=directory
+    - name: COPY | Deploy test certificate
+      copy: src=file/test.crt dest={{ int_ansible_ssl_dir }}/test.crt
+    - name: COPY | Deploy test key
+      copy: src=file/test.key dest={{ int_ansible_ssl_dir }}/test.key
+  vars:
+# Internal vars
+    int_ansible_ssl_dir: '/etc/ansible-ssl'
+# Role vars
+    nginx_worker_processes: 1 # Ansible+FreeBSD can't detect CPU number
+    nginx_apt_package: 'nginx-extras'
+    nginx_backports: true
+    nginx_php56: true
+    nginx_php70: true
+    nginx_upstreams:
+      - name: 'test'
+        servers:
+          - path: '127.0.0.1:80'
+            max_conns: 150
+            weight: 10
+            down: false
+      - name: 'test-absent'
+        servers:
+          - path: '127.0.0.1:80'
+            max_conns: 150
+            weight: 10
+            down: false
+        state: 'absent'
+    nginx_htpasswd:
+      - name: 'hello'
+        description: 'Please login!'
+        users:
+          - name: 'hx'
+            password: 'asdfg'
+            state: 'absent'
+          - name: 'hanx'
+            password: 'qwerty'
+      - name: 'nagios'
+        description: 'Please login to Nagios!'
+        users:
+          - name: 'nagiosadmin'
+            password: 'nagios'
+      - name: 'deleteme'
+        description: 'Please login!'
+        users: []
+        state: 'absent'
+    nginx_ssl_pairs:
+      - name: 'test-ssl-predeployed.local'
+        dest_key: "{{ int_ansible_ssl_dir }}/test.key"
+        dest_cert: "{{ int_ansible_ssl_dir }}/test.crt"
+      - name: 'test-ssl.local'
+        key: |
+          -----BEGIN RSA PRIVATE KEY-----
+          MIIEpAIBAAKCAQEAvavrJWFp3Al2VwRgKx+4Y2mbRRvoxvyd2pyN0xMJ/tCJscaG
+          8s60v6WZ9FcCOeMkSI2DXsk4z7pbQdQn0h2GDr/5MOJkPAVWSWEN46tpaLZ3v0zp
+          88ZIbnEk1G0PsdFuW/pnLsakPlAMrl1VArFsV6YsatLt30UIYYcRO97StkoOehCx
+          A5w+XqtfHZeQZ0/DS81633gwYUcMuSTUFZ60r7ge1/m77DTSKg3rTVk5sebP8cjS
+          +aWHvxP/GyvvDsT+3gjRJx2/5O3JkfH0zaOsaU2Avj0PR0c5rhynrNO/l1k+GJJB
+          cbBrM+yA8Ofzp4oXUrCfaIq3RuL3Pd+khcKsiwIDAQABAoIBAQCPpAMQ7BUfbosQ
+          m1+5SOx7XR8Z12kSSX3CcY12rJSFRakB2TeZ6rE38lIFmV82N67iw0kaH4nGx3sU
+          /3aoyXMc+IXfX5RJYEFYkQfTw5ywkH9fgQAsfZ2dBlK+DVo1cEYDoj9CTW1VQ4pX
+          Ape+0l8agd5hiBxdWgpe0ctbbARnx584viLiA/iPBDNxKi9zEYw+WP7hSj5QWahr
+          a09tubcC4L6tjvv8CoZTRSKfCW64vWRDvE6vmA+zJN9Arc1WTYzF1KO1Gybwf8h7
+          stJb191smAgGDFhKo0j58ncyAnrS1k4mapm86QQhlfIA6DKvvC0qm3KdQns5b7HM
+          PyzW0hwBAoGBAO2mTVTOsziom9vtBwM0nRMMEgynR2X3EKMJz2mjcCf66f1F+aQ5
+          DvQFM2V8S2s1nGnPh8NKKZ8DxW1NKuR4qx82zeAXpUs9ibHxOnw4YRC485zqc2Wt
+          fSO1OEDYeKyzWP1nGGtCntYUXzJnWn/wz0mBGKzLKTuLwyFIKx1b7bybAoGBAMxR
+          N+lT57rX6d4GUqcgNOuWMZ/D8egnE5+hsoiFnHOisRLOgUgBBSy4rwAZx+rdHYT+
+          RO11L1PLYEzyvnO0f13R+N7aqKwNXDSzZGA+jb4pjkVidIC2smG/JYKJH5Z+kakw
+          mwMKP0wdRZJsCaMgScHmWJS8d6Ox/XJJoWrTWTbRAoGAWJlEgVaiaIArwz1F/QLz
+          gHNik0cWDkSi9jWlFxwwpycbbypUXM5M7dq2g6JoN6sACk6trbgLdlYgl5RKZm06
+          VuPGs0H9hOSHXkix5jfasDJT2G9r4D9ixRo9w6cwriobBjYWW3612tgzeYYgrkwn
+          655uhZUkZSfA8rqGIGbyZfsCgYAf5WH8G+wmIATTc1s92epJCOZwUY+XNVp75itP
+          4sPczX4lOHW4PuiG5cH0GxI5mRE9rNAn3c5on2xGNvMCbyAfDmNyruH8Eg3d8E9w
+          MvO/xw79x/P2EA9i8QszCKMUxGeK6RqZ6+SbxkoRJKqQe77n9UTI228179hoGhSH
+          77ySsQKBgQC8SSZn6a8PpSIIFXB9WCFMwfGFYbUz0wvpaeZP8GKx3BEzMeJqSUaJ
+          hrQgpwQXkueeamlCQcvV3AUCoBRWTYRLDrWiUIXuIgikDWBFp6TBvTnVRI7iktly
+          fNED7jXOSjJqnFmdkZlAI5V8dM++mVYVykJD6jcaVRQvxqFLrhSaRg==
+          -----END RSA PRIVATE KEY-----
+        cert: |
+          -----BEGIN CERTIFICATE-----
+          MIIDBTCCAe2gAwIBAgIJALKJfbk5vuieMA0GCSqGSIb3DQEBBQUAMBkxFzAVBgNV
+          BAMMDnRlc3Qtc3NsLmxvY2FsMB4XDTE2MDExMTE2NDI0NFoXDTI2MDEwODE2NDI0
+          NFowGTEXMBUGA1UEAwwOdGVzdC1zc2wubG9jYWwwggEiMA0GCSqGSIb3DQEBAQUA
+          A4IBDwAwggEKAoIBAQC9q+slYWncCXZXBGArH7hjaZtFG+jG/J3anI3TEwn+0Imx
+          xobyzrS/pZn0VwI54yRIjYNeyTjPultB1CfSHYYOv/kw4mQ8BVZJYQ3jq2lotne/
+          TOnzxkhucSTUbQ+x0W5b+mcuxqQ+UAyuXVUCsWxXpixq0u3fRQhhhxE73tK2Sg56
+          ELEDnD5eq18dl5BnT8NLzXrfeDBhRwy5JNQVnrSvuB7X+bvsNNIqDetNWTmx5s/x
+          yNL5pYe/E/8bK+8OxP7eCNEnHb/k7cmR8fTNo6xpTYC+PQ9HRzmuHKes07+XWT4Y
+          kkFxsGsz7IDw5/OnihdSsJ9oirdG4vc936SFwqyLAgMBAAGjUDBOMB0GA1UdDgQW
+          BBRaSF1L+ivPhmIVGQjtviBqZWDS9DAfBgNVHSMEGDAWgBRaSF1L+ivPhmIVGQjt
+          viBqZWDS9DAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBBQUAA4IBAQCjrgB9+Zuq
+          Rx7T2mRUl4jf75dLabuBQD0ePALTtvNyBSghhzSr90mE7GlFOYAv0JsmEa3R1LVF
+          wLPIdrIhNHpt7hN0PkhUlfgmxBnRSCfhpiq4xxsDVFM7ehtDz4+dv1LUDMXo07+E
+          f24g9aqmypiFzHisUQrYIhtQmHxRpKyGp6kDAW9qNxg6k/Um00aHdYfuD9ER4ksR
+          f8Hto7f+vssKxCRY2OZXqq13PxEwC5+hgAUkTdrycA/moXFuHJi3lCnCND7sSzvG
+          tXBggOusyFZFC4bs2m+V+Z+RN+tK2c/c0nq5HR8MV5HwIm4Z8GoT2/0BfJ00cgWL
+          lVz0gDBfdH8f
+          -----END CERTIFICATE-----
+    nginx_custom_http:
+      - 'add_header X-ansible 1;'
+    nginx_default_vhost: 'first-test'
+    nginx_default_vhost_ssl: 'test-ssl-predeployed.local'
+    nginx_vhosts:
+      - name:
+          - 'test.local'
+          - 'test-alias.local'
+          - 'test2-alias.local'
+        template: '_base'
+        filename : 'first-test'
+        override_try_files: '$uri $uri index.htm index.html'
+        headers:
+          'X-Frame-Options': 'deny always'
+          'X-ansible-default': '1'
+        manage_local_content: false
+        use_error_log: true
+        more:
+          - 'autoindex off;'
+        location:
+          '/test':
+            - 'return 403;'
+          '/gunther':
+            - 'return 404;'
+          '/status':
+            - 'stub_status on;'
+            - 'access_log off;'
+            - 'allow 127.0.0.1;'
+            - 'deny all;'
+      - name: 'test-htpasswd.local'
+        template: '_base'
+        location:
+          '/hello':
+            - htpasswd: 'hello'
+      - name: 'test-htpasswd-all.local'
+        template: '_base'
+        htpasswd: 'hello'
+      - name: 'test-location.local'
+        template: '_base'
+        location:
+          '/':
+            - 'alias /var/tmp;'
+      - name: 'test-php.local'
+        php_version: 70
+        upstream_params:
+          - 'fastcgi_param FOO bar;'
+        redirect_from:
+          - 'www.test-php.local'
+        template: '_php'
+        use_error_log: true
+        use_access_log: true
+      - name: 'test-php-index.local'
+        template: '_php_index'
+      - name: 'test-proxy.local'
+        listen:
+          - 8080
+        template: '_proxy'
+        upstream_name: 'test'
+        headers:
+          'X-proxyfied': '1'
+      - name: 'deleted.local'
+        state: 'absent' 
+      - name: 'redirect-to.local'
+        redirect_to: 'http://test.local'
+      - name: 'backuppc.local'
+        template: '_backuppc'
+        htpasswd: 'hello'
+      - name: 'nagios3.local'
+        template: '_nagios3'
+        htpasswd: 'nagios'
+      - name: 'test-ssl.local'
+        proto: ['http', 'https']
+        template: '_base'
+        ssl_name: 'test-ssl.local'
+      - name: 'test-ssl-predeployed.local'
+        proto: ['http', 'https']
+        template: '_base'
+        ssl_name: 'test-ssl-predeployed.local'
+        headers:
+          'X-ansible-default': '1'
+        ssl_template: false
+      - name: 'test-ssl-redirect.local'
+        proto: ['https']
+        template: '_base'
+        ssl_name: 'test-ssl.local'
+        redirect_https: true
+#      - name: 'owncloud.local'
+#        template: '_owncloud'
+    nginx_dh_length: 1024
+  roles:
+    - ../../
+  post_tasks:
+# --------------------------------
+# Apps
+# --------------------------------
+    - name: INCLUDE | Post_tasks related to OS version
+      include: "includes/post_{{ ansible_distribution }}.yml"
+# --------------------------------
+# Deploy index files
+# --------------------------------
+    - name: -- Add PHP file --
+      copy: dest="{{ nginx_root }}/{{ item }}/public/index.php" content="<?php phpinfo();"
+      with_items: ['test-php.local', 'test-php-index.local']
+    - name: -- Add HTML file --
+      copy: dest="{{ item }}/index.html" content="Index HTML test OK\n"
+      with_items: ['{{ nginx_root }}/first-test/public', '/var/tmp', '{{ nginx_root }}/test-htpasswd-all.local/public', '{{ nginx_root }}/test-ssl.local/public', '{{ nginx_root }}/test-ssl-predeployed.local/public']
+    - name: -- Create directory --
+      file: path={{ nginx_root }}/test-htpasswd.local/public/hello state=directory
+    - name: -- Add HTML file hello --
+      copy: dest="{{ nginx_root }}/test-htpasswd.local/public/hello/index.html" content="hello\n"
+# --------------------------------
+# Simple vhosts tests
+# --------------------------------
+    - name: -- VERIFY VHOSTS --
+      command: "curl -H 'Host: {{ item.name if item.name is string else item.name[0] }}' http://127.0.0.1{% if item.listen is defined %}:{{ item.listen[0] }}{% endif %}/"
+      with_items: "{{ nginx_vhosts }}"
+      when: item.state is undefined or item.state != "absent"
+      changed_when: false
+    - name: -- VERIFY FORBIDDEN --
+      command: "curl -H 'Host: test-php-index.local' http://127.0.0.1/phpinfo.php"
+      register: f
+      failed_when: f.stdout.find('403 Forbidden') == -1
+      changed_when: false
+    - name: -- VERIFY REDIRECT VHOSTS --
+      command: "curl -H 'Host: {{ item.redirect_from[0] }}' http://127.0.0.1/"
+      with_items: "{{ nginx_vhosts }}"
+      when: item.redirect_from is defined and (item.state is undefined or item.state != "absent")
+      changed_when: false
+      register: r
+      failed_when: r.stdout.find('301 Moved Permanently') == -1
+
+# --------------------------------
+# PHP
+# --------------------------------
+    - name: -- VERIFY PHP VHOSTS --
+      command: "curl -H 'Host: {{ item }}' http://127.0.0.1/"
+      register: p
+      changed_when: false
+      failed_when: p.stdout.find('PHP Version') == -1
+      with_items: ['test-php.local', 'test-php-index.local']
+
+    - name: -- VERIFY PHP5 VHOSTS (implicit default) --
+      command: "curl -H 'Host: {{ item }}' http://127.0.0.1/"
+      register: p
+      changed_when: false
+      failed_when: p.stdout.find('PHP Version 5') == -1
+      with_items: ['test-php-index.local']
+
+    - name: -- VERIFY PHP7 VHOSTS --
+      command: "curl -H 'Host: {{ item }}' http://127.0.0.1/"
+      register: p
+      changed_when: false
+      failed_when: p.stdout.find('PHP Version 7') == -1
+      with_items: ['test-php.local']
+
+# --------------------------------
+# Basic Auth
+# --------------------------------
+    - name: -- VERIFY AUTH BASIC NONE --
+      command: "curl -H 'Host: test-htpasswd.local' http://127.0.0.1/hello/"
+      changed_when: false
+      register: authnone
+      failed_when: authnone.stdout.find('401 Authorization Required') == -1
+    - name: -- VERIFY AUTH BASIC FAIL --
+      command: "curl -u fail:fail -H 'Host: test-htpasswd.local' http://127.0.0.1/hello/"
+      changed_when: false
+      register: authfail
+      failed_when: authfail.stdout.find('401 Authorization Required') == -1
+    - name: -- VERIFY AUTH BASIC OK --
+      command: "curl -u hanx:qwerty -H 'Host: test-htpasswd.local' http://127.0.0.1/hello/"
+      changed_when: false
+      register: authok
+      failed_when: authok.stdout.find('hello') == -1
+    - name: -- VERIFY AUTH BASIC FAIL GLOBAL --
+      command: "curl -u fail:fail -H 'Host: test-htpasswd-all.local' http://127.0.0.1/"
+      changed_when: false
+      register: authgfail
+      failed_when: authgfail.stdout.find('401 Authorization Required') == -1
+    - name: -- VERIFY AUTH BASIC OK --
+      command: "curl -u hanx:qwerty -H 'Host: test-htpasswd-all.local' http://127.0.0.1/"
+      changed_when: false
+      register: authgok
+      failed_when: authgok.stdout.find('401 Authorization Required') != -1
+
+# --------------------------------
+# BackupPC
+# --------------------------------
+    - name: -- VERIFY BACKUPPC --
+      command: "curl -u hanx:qwerty -H 'Host: backuppc.local' http://127.0.0.1/"
+      changed_when: false
+      register: authbpc
+      failed_when: authbpc.stdout.find('BackupPC Server Status') == -1
+      when: ansible_distribution != 'FreeBSD'
+
+# --------------------------------
+# Nagios
+# --------------------------------
+    - name: -- VERIFY NAGIOS3 PHP --
+      command: "curl -u nagiosadmin:nagios -H 'Host: nagios3.local' http://127.0.0.1/side.php"
+      changed_when: false
+      register: nagios_php
+      failed_when: nagios_php.stdout.find('Nagios Core') == -1
+    - name: -- VERIFY NAGIOS3 CGI --
+      command: "curl -u nagiosadmin:nagios -H 'Host: nagios3.local' http://127.0.0.1/cgi-bin{% if ansible_distribution == 'Debian' %}/nagios3{% endif %}/summary.cgi"
+      changed_when: false
+      register: nagios_cgi
+      failed_when: nagios_cgi.stdout.find('Nagios Event Summary') == -1
+
+# --------------------------------
+# Owncloud
+# --------------------------------
+#    - block:
+#      - name: -- VERIFY OWNCLOUD --
+#        command: "curl -H 'Host: owncloud.local' http://127.0.0.1/"
+#        changed_when: false
+#        register: ownsimple
+#        failed_when: ownsimple.stdout.find('ownCloud') == -1
+#      - name: -- VERIFY OWNCLOUD JS (FROM PHP)--
+#        command: "curl -H 'Host: owncloud.local' http://127.0.0.1/index.php/core/js/oc.js"
+#        changed_when: false
+#        register: ownjsphp
+#        failed_when: ownjsphp.stdout.find('var oc_debug=false') == -1
+#      - name: -- VERIFY OWNCLOUD JS --
+#        command: "curl -H 'Host: owncloud.local' http://127.0.0.1/core/js/js.js"
+#        changed_when: false
+#        register: ownjs
+#        failed_when: ownjs.stdout.find('var oc_debug') == -1
+#      when: ansible_distribution != 'FreeBSD'
+
+# --------------------------------
+# SSL
+# --------------------------------
+    - name: -- VERIFY SSL --
+      command: "curl --insecure -H 'Host: {{ item }}' https://127.0.0.1/"
+      changed_when: false
+      register: sslok
+      failed_when: sslok.stdout.find('Index HTML test OK') == -1
+      with_items:
+        - 'test-ssl-predeployed.local'
+        - 'test-ssl.local'
+    - name: -- VERIFY SSL REDIRECT --
+      command: "curl -v --insecure -H 'Host: {{ item }}' http://127.0.0.1/"
+      changed_when: false
+      register: sslredirok
+      failed_when: >
+        sslredirok.stderr.find('< Location') == -1 and
+        sslredirok.stderr.find('https://{{ item }}/') == -1
+      with_items:
+        - 'test-ssl-redirect.local'
+
+# --------------------------------
+# Default vhosts
+# --------------------------------
+    - name: -- VERIFY DEFAULT VHOST --
+      command: "curl -v http://127.0.0.1/"
+      changed_when: false
+      register: vdefault
+      failed_when: >
+        vdefault.stdout.find('Index HTML test OK') == -1 or
+        vdefault.stderr.find('X-ansible-default') == -1
+    - name: -- VERIFY DEFAULT SSL VHOST --
+      command: "curl --insecure -v https://127.0.0.1/"
+      changed_when: false
+      register: defaultssl
+      failed_when: >
+        defaultssl.stdout.find('Index HTML test OK') == -1 or
+        defaultssl.stderr.find('X-ansible-default') == -1
+    - name: -- VERIFY NOT DEFAULT VHOST --
+      command: "curl -v -H 'Host: test-php.local' http://127.0.0.1/"
+      changed_when: false
+      register: vphp
+      failed_when: vphp.stderr.find('X-ansible-default') != -1
+    - name: -- VERIFY NOT DEFAULT SSL VHOST --
+      command: "curl --insecure -v -H 'Host: test-ssl.local' https://127.0.0.1/"
+      changed_when: false
+      register: notdefaultssl
+      failed_when: notdefaultssl.stderr.find('X-ansible-default') != -1
+    - name: -- VERIFY DEFAULT VHOST + STUB_STATUS --
+      command: "curl -v http://127.0.0.1/status"
+      changed_when: false
+      register: vdefault_status
+      failed_when: >
+        vdefault_status.stderr.find('X-ansible-default') == -1 or
+        vdefault_status.stdout.find('Active connections') == -1
+
+# --------------------------------
+# Check HTTP2
+# --------------------------------
+    - name: SHELL | Check HTTP2
+      shell: nghttp -nv https://localhost 2> /dev/null | grep -q h2
+      args:
+        executable: /bin/sh
+      changed_when: false
+      when: nginx_auto_config_httpv2 and 'http_v2' in nginx_modules

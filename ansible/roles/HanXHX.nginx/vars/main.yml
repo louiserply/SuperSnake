@@ -1,0 +1,37 @@
+nginx_upstream_server_params:
+  - key: 'weight'
+    default: 1
+  - key: 'max_fails'
+    default: 1
+  - key: 'fail_timeout'
+    default: '10s'
+  - key: 'backup'
+    is_bool: true
+  - key: 'down'
+    is_bool: true
+    default: false
+  - key: 'route'
+    default: 'configuration_error'
+  - key: 'slow_start'
+    default: 0
+# Nginx Plus only
+#  - key: 'max_conns'
+#    default: 0
+#    min_version: '1.5.9'
+#  - key: 'resolve'
+#    is_bool: true
+#    min_version: '1.5.12'
+
+nginx_dirs:
+  - "{{ nginx_htpasswd_dir }}"
+  - "{{ nginx_ssl_dir }}"
+  - "{{ nginx_helper_dir }}"
+
+nginx_templates_no_dir:
+  - '_backuppc'
+  - '_nagios3'
+  - '_owncloud'
+  - '_proxy'
+
+nginx_upstream_php56: 'php56'
+nginx_upstream_php70: 'php70'

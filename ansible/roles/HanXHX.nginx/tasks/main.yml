@@ -1,0 +1,26 @@
+---
+
+- name: INCLUDE_VARS | Related to OS
+  include_vars: "{{ ansible_distribution }}.yml"
+
+- name: INCLUDE | Install
+  include: install_{{ ansible_distribution }}.yml
+
+- name: INCLUDE | Prepare
+  include: prepare.yml
+
+- name: INCLUDE | Install
+  include: config.yml
+
+- name: INCLUDE | Upstream configuration
+  include: upstream.yml
+
+- name: INCLUDE | htpasswd configuration
+  include: htpasswd.yml
+
+- name: INCLUDE | SSL configuration
+  include: ssl.yml
+
+- name: INCLUDE | Vhosts configuration
+  include: vhost.yml
+

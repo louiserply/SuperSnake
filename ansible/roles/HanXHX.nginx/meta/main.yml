@@ -1,0 +1,26 @@
+---
+galaxy_info:
+  author: Emilien Mantel
+  description: Nginx for Debian
+  company:
+  license: GPLv2
+  min_ansible_version: 2.0
+  platforms:
+  - name: Debian
+    versions:
+    - jessie
+  - name: FreeBSD
+    versions:
+    - 10.2
+  galaxy_tags:
+  - web
+  - proxy
+  - http
+  - http2
+  - https
+  - ssl
+  - tls
+  - nginx
+  - cdn
+dependencies: []
+

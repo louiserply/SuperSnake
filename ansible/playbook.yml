@@ -1,0 +1,40 @@
+---
+- hosts: all
+  vars:
+    http_port: 80
+    max_clients: 200
+  remote_user: root
+  sudo: yes
+  tasks:
+    - name: install pip
+      apt: pkg=python-pip
+
+    - name: install virtualenv
+      apt: pkg=virtualenv
+
+    - name: install flask
+      pip: name=flask
+
+    - name: copy file app
+      copy: src=../vagrant/app.py dest=/home/vagrant/tp.py
+
+    - name: copy file wsgi
+      copy: src=../vagrant/wsgi.py dest=/home/vagrant/wsgi.py
+
+    - name: launch virtualenv
+      command: virtualenv myprojectenv
+
+    - name:  activate the virtualenv
+      become: yes 
+      shell: . /home/vagrant/myprojectenv/bin/activate
+
+    - name: Launch the flask app with gunicorn
+      command: gunicorn -b 0.0.0.0:5000 tp:app --chdir /home/vagrant/
+
+  roles:
+    - HanXHX.nginx
+    - mrwilson.sqlite
+    - futurice.supervisor
+    - futurice.pip
+    - debops.gunicorn
+...

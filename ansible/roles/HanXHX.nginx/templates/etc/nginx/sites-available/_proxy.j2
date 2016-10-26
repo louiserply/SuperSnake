@@ -1,0 +1,21 @@
+{% extends "_base.j2" %}
+
+{% block root %}
+{% if item.root is defined %}
+	root {{ item.root }};
+{% endif %}
+{% endblock %}
+
+{% block template_try_files %}
+		include {{ nginx_etc_dir }}/proxy_params;
+		proxy_pass http://{{ item.upstream_name }};
+{% if item.proxy_params is defined and item.proxy_params is iterable %}
+{% for param in item.proxy_params %}
+		{{ param }}
+{% endfor %}
+{% endif %}
+{% endblock %}
+
+{# We flush the default local content (locations) #}
+{% block template_local_content %}
+{% endblock %}

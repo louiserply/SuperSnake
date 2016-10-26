@@ -1,0 +1,161 @@
+{% set __proto = item.proto | default(['http']) %}
+{% set __main_name =  item.filename | default(item.name if item.name is string else item.name[0]) %}
+{% set __listen = item.listen | default(['80']) %}
+{% set __listen_ssl = item.listen_ssl | default(['443']) %}
+{% set __location = item.location | default({}) %}
+{% set __headers = item.headers | default({'X-Frame-Options': 'DENY always', 'X-Content-Type-Options': 'nosniff always' }) %}
+{% macro htpasswd(htpasswd_name, indent=1) -%}
+{% for ht in nginx_htpasswd if ht.name == htpasswd_name %}
+{{ "\t" * indent }}auth_basic "{{ ht.description }}";
+{{ "\t" * indent }}auth_basic_user_file {{ nginx_htpasswd_dir }}/{{ ht.name }};
+{% endfor%}
+{%- endmacro %}
+{% macro ssl(ssl_name) %}
+{% for sn in nginx_ssl_pairs if sn.name == ssl_name %}
+	ssl_certificate {{ nginx_ssl_dir + '/' + ssl_name + '/' + ssl_name + '.crt' if sn.dest_cert is not defined else sn.dest_cert }};
+	ssl_certificate_key {{ nginx_ssl_dir + '/' + ssl_name + '/' + ssl_name + '.key' if sn.dest_key is not defined else sn.dest_key }};
+{% endfor %}
+{%- endmacro %}
+#
+# {{ ansible_managed }}
+#
+
+#
+# HTTP
+#
+server {
+{% if 'http' in __proto %}
+{% for port in __listen %}
+	listen {{ port }}{% if nginx_default_vhost == __main_name %} default_server{% endif %};
+{% endfor %}
+{% endif %}
+{% if 'https' in __proto %}
+{% for port in __listen_ssl %}
+	listen {{ port }}{% if nginx_default_vhost_ssl == __main_name %} default_server{% endif %} ssl{% if nginx_auto_config_httpv2 and 'http_v2' in nginx_modules %} http2{% endif %};
+{% endfor %}
+{{ ssl(item.ssl_name) }}
+{% if item.ssl_template is not defined or item.ssl_template != false %}
+	include {{ nginx_helper_dir + '/ssl-' + item.ssl_template | default('strong') }};
+{% endif %}
+{% endif %}
+	server_name {% if item.name is string %}{{ item.name }}{% else %}{{ "\n\t\t"  }}{{ item.name | join("\n\t\t") }}{% endif %};
+{% block root %}
+{% if item.root is defined %}
+	root {{ item.root }};
+{% else %}
+	root {{ nginx_root }}/{{ __main_name }}/public;
+{% endif %}
+{% endblock %}
+{% block template_index %}
+	index {{ item.index | default('index.html index.htm') }};
+{% endblock %}
+
+{% block template_more %}
+{% if item.more is defined and item.more is iterable %}
+{% for line in item.more %}
+	{{ line }}
+{% endfor %}
+{% endif %}
+{% endblock %}
+
+{% if item.htpasswd is defined %}
+{{ htpasswd(item.htpasswd, 1) }}
+{% endif %}
+
+{% block template_headers %}
+	# --> Custom headers
+{% for key, value in __headers.iteritems() %}
+	add_header {{ key }} {{ value | replace(' always', '') }}{% if nginx_version.stdout | version_compare('1.7.5', 'ge') and ' always' in value %} always{% endif %};
+{% endfor %}
+	# <-- Custom headers
+{% endblock %}
+
+{% if not __location.has_key('/') %}
+	location / {
+{% block template_try_files %}
+		try_files {{ override_try_files | default('$uri $uri/ =404') }};
+{% endblock %}
+	}
+{% endif %}
+
+{% block template_upstream_location %}
+{% endblock %}
+{% block template_custom_location %}
+{% endblock %}
+
+{% if __location is iterable and __location | length > 0 %}
+	# --> Custom locations
+{% for location, opts in __location.iteritems() %}
+	location {{ location }} {
+{% for opt in opts %}
+{% if opt.htpasswd is defined %}{{ htpasswd(opt.htpasswd, 2) }}{% else %}
+		{{ opt }}
+{% endif %}
+{% endfor  %}
+	}
+{% endfor %}	# <-- Custom locations
+{% endif %}
+
+{% block template_local_content %}
+{% if item.manage_local_content is not defined or item.manage_local_content %}
+	location ~ /\.ht {
+		deny all;
+	}
+
+	location = /favicon.ico {
+		expires 30d;
+		access_log off;
+		log_not_found off;
+	}
+
+	location ~* \.(txt|js|css|png|jpe?g|gif|ico|svg)$ {
+		expires 30d;
+		log_not_found off;
+	}
+{% endif %}
+{% endblock %}
+
+{% if item.use_access_log is defined %}
+{% if item.use_access_log %}
+	access_log {{ nginx_log_dir }}/{{ __main_name }}_access.log combined;
+{% else %}
+	access_log off;
+{% endif %}
+{% endif %}
+{% if item.use_error_log is defined %}
+{% if item.use_error_log %}
+	error_log {{ nginx_log_dir }}/{{ __main_name }}_error.log {{ nginx_error_log_level }};
+{% else %}
+	error_log off;
+{% endif %}
+{% endif %}
+}
+
+{% if item.redirect_https is defined and item.redirect_https %}
+#
+# Redirect HTTP to HTTPS
+#
+server {
+{% for port in __listen %}
+	listen {{ port }};
+{% endfor %}
+	server_name {% if item.name is string %}{{ item.name }}{% else %}{{ item.name | join(' ') }}{% endif %};
+	return 301 https://{{ __main_name }}{% if '443' not in __listen_ssl %}:__listen_ssl[0]{% endif %}$request_uri;
+}
+{% endif %}
+
+
+{% if item.redirect_from is defined and item.redirect_from is iterable %}
+#
+# Redirect from
+#
+server {
+{% for port in __listen %}
+	listen {{ port }};
+{% endfor %}
+	server_name {{ item.redirect_from | join(' ') }};
+	return 301 $scheme://{{ __main_name }}$request_uri;
+}
+{% endif %}
+
+# vim:filetype=nginx
