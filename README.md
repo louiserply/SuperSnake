@@ -47,9 +47,7 @@ To create the virtual machine, use the command
     vagrant up
 
 
-
-
-
+Louise RAPILLY
 
 
 
